@@ -73,6 +73,7 @@ import System.Exit
 import System.FilePath
 import System.IO.Error (isDoesNotExistError)
 import System.Process
+import System.IO (hPutStrLn, stderr)
 import Text.Read (readMaybe)
 
 -- | Various pieces of information about a Git repository.
@@ -221,8 +222,14 @@ getGitFilesForWorktree git = do
 -- | Get a list of dependent git related files.
 getGitFiles :: FilePath -> IO [FilePath]
 getGitFiles git = do
+  exists <- doesPathExist git
   isDir <- doesDirectoryExist git
-  if isDir then getGitFilesRegular git else getGitFilesForWorktree git
+  case (exists, isDir) of
+    (True, True) -> getGitFilesRegular git
+    (True, False) -> getGitFilesForWorktree git
+    (False, _) -> do
+      hPutStrLn stderr $ "Path " <> git <> " does not exists!"
+      pure []
 
 -- | Get the 'GitInfo' for the given root directory. Root directory
 -- should be the directory containing the @.git@ directory.
