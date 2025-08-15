@@ -72,6 +72,7 @@ import System.Directory
 import System.Exit
 import System.FilePath
 import System.IO.Error (isDoesNotExistError)
+import System.Info (os)
 import System.Process
 import Text.Read (readMaybe)
 
@@ -264,7 +265,25 @@ getGitInfo root = try $ do
 --
 -- @since 0.1.0.0
 getGitRoot :: FilePath -> IO (Either GitHashException FilePath)
-getGitRoot dir = fmap (normalise . takeWhile (/= '\n')) `fmap` (runGit dir ["rev-parse", "--show-toplevel"])
+getGitRoot dir = do
+  gitRoot <- runGit dir ["rev-parse", "--show-toplevel"]
+  let process path = case (os, path) of
+        ("mingw32", '/' : _) ->
+          concat -- build path back
+            . drop 1 -- remove first element
+            . splitOn '/' -- win doesn't allow '/' in names, it is separator only
+            $ path
+        _ -> path
+  pure $ fmap (normalise . takeWhile (/= '\n')) gitRoot
+ where
+  splitOn :: (Eq a) => a -> [a] -> [[a]]
+  splitOn _ [] = []
+  splitOn needle xs =
+    let (prefix, rest) = break (== needle) xs
+        rest' = dropWhile (== needle) rest
+     in case prefix of
+          [] -> splitOn needle rest'
+          _ -> (needle : prefix) : splitOn needle rest'
 
 runGit :: FilePath -> [String] -> IO (Either GitHashException String)
 runGit root args = do
