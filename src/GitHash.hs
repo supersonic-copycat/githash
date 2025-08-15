@@ -274,7 +274,7 @@ getGitRoot dir = do
             . splitOn '/' -- win doesn't allow '/' in names, it is separator only
             $ path
         _ -> path
-  pure $ fmap (normalise . takeWhile (/= '\n')) gitRoot
+  pure $ fmap (normalise . process . takeWhile (/= '\n')) gitRoot
  where
   splitOn :: (Eq a) => a -> [a] -> [[a]]
   splitOn _ [] = []
